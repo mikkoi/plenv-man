@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+#
+# Summary: Show a man page from application-specific Perl installation
+#
+# Usage: plenv man <manpage>
+#        plenv man --executable <executable> <manpage>
+#        plenv man --version <version> <manpage>
+#
+# Read man page from the currently active Perl installation.
+#
+# By defining the <version> you can read man pages
+# from any installed version, not just the currently active version.
+# If Plenv has no currently active version,
+# version reverts to "system", the default.
+#
+# If version is "system", then no changes are done to $MANPATH,
+# and $PATH is cleaned of Plenv related paths.
+# This is necessary in case Plenv has plenv-man plugin fully in use,
+# and there is "pseudo" `man` command installed in `shims/`
+# and in all `plenv/versions/<version>/bin` directories.
+#
+# You can define another <executable> instead of `man`.
+# `man` is default.
+# This is useful if you want to run e.g. `manpath` or `apropos`.
+#
+# All subsequent parameters are passed directly to `man`
+# command or <executable>.
+#
+# Examples:
+#
+# plenv man perl
+# plenv man 3 open
+# plenv man --version 5.34.1 perldelta
+# plenv man --version 5.34.1 --executable manpath -g -d
+
+set -e
+[ -n "$PLENV_DEBUG" ] && set -x
+
+# Provide plenv completions
+if [ "$1" = "--complete" ]; then
+  echo --executable
+  echo --version
+  # TODO Add file/path completion
+  exit
+fi
+
+USER_COMMAND='man'
+PLENV_VERSION="$(plenv-version-name)"
+OTHER_ARGS=()
+
+for ((i=1; i<=$#; i++)); do
+  ARG="${!i}"
+  if [ "$ARG" = "--executable" ]; then
+    i=$(( i + 1 ))
+    USER_COMMAND="${!i}"
+  elif [ "$ARG" = "--version" ]; then
+    i=$(( i + 1 ))
+    PLENV_VERSION="${!i}"
+  elif [[ "$ARG" =~ ^-- ]]; then
+    { echo "plenv: Unknown argument $ARG"
+      exit 1
+    } >&2
+  elif [ -n "$ARG" ]; then
+    OTHER_ARGS+=("$ARG")
+  fi
+done
+
+VERSION_ROOT_PATH="${PLENV_ROOT}/versions/${PLENV_VERSION}"
+
+if [ "${PLENV_VERSION}" != "system" ]; then
+  global_manpath="$(MANPATH='' manpath)"
+  MANPATH="${VERSION_ROOT_PATH}/man${MANPATH:+:}${MANPATH}"
+  MANPATH="${MANPATH}${global_manpath:+:}${global_manpath}"
+  export MANPATH
+fi
+
+# We assume this implementation of man replaces
+# default man paths by $MANPATH. Therefore, if $MANPATH is set,
+# this is user's specific choice. We respect it.
+# This requires more logic:
+# https://unix.stackexchange.com/questions/344603/how-to-append-to-manpath
+
+expand_path() {
+  if [ ! -d "$1" ]; then
+    return 1
+  fi
+
+  local cwd="$PWD"
+  cd "$1"
+  pwd
+  cd "$cwd"
+}
+
+remove_from_path() {
+  local path_to_remove
+  path_to_remove="$(expand_path "$1")"
+  if [ -z "$path_to_remove" ]; then
+    echo "${PATH}" && return
+  fi
+
+  local result=""
+  local paths
+  IFS=: read -r -a paths <<< "$PATH"
+  for path in "${paths[@]}"; do
+    path="$(expand_path "$path" || true)"
+    if [ -n "$path" ] && [ "$path" != "$path_to_remove" ]; then
+      result="${result}${path}:"
+    fi
+  done
+  echo "${result%:}"
+}
+
+# Cleaning the path is only necessary if user has installed
+# the plenv fake `man` executables in shims and in different
+# Perl installations.
+# We don't check, we assume that might be the case.
+PATH="$(remove_from_path "${PLENV_ROOT}/versions/${PLENV_VERSION}/bin")"
+PATH="$(remove_from_path "${PLENV_ROOT}/shims")"
+export PATH
+
+PLENV_COMMAND_PATH="$(command -v "$USER_COMMAND" || true)"
+exec "$PLENV_COMMAND_PATH" "${OTHER_ARGS[@]}"
