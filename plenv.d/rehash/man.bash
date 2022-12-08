@@ -73,8 +73,10 @@ command -p chmod +x "$man_version_path"
 
 versions_raw="$(plenv-versions --bare)"
 # echo "versions_raw:" "${versions_raw}"
-versions=()
-mapfile -t versions <<< "${versions_raw}"
+declare -a versions
+declare line
+while IFS= read -r line; do versions+=("$line"); done <<< "${versions_raw}"
+# mapfile -t versions <<< "${versions_raw}"
 # echo "versions:" "${versions[@]}"
 for i in "${!versions[@]}"; do
     version="${versions[$i]}"
