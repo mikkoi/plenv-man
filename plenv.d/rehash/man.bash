@@ -72,25 +72,18 @@ command -p chmod +x "$man_version_path"
 }
 
 versions_raw="$(plenv-versions --bare)"
-# echo "versions_raw:" "${versions_raw}"
 declare -a versions
 declare line
 while IFS= read -r line; do versions+=("$line"); done <<< "${versions_raw}"
-# mapfile -t versions <<< "${versions_raw}"
-# echo "versions:" "${versions[@]}"
 for i in "${!versions[@]}"; do
     version="${versions[$i]}"
-    # PLENV_VERSION="${versions[$i]}"
     PLENV_VERSION="${version}"
-    # echo "PLENV_VERSION:$PLENV_VERSION" >&1
     VERSION_ROOT_PATH="${PLENV_ROOT}/versions/${PLENV_VERSION}"
     man_version_dir="${VERSION_ROOT_PATH}/bin"
-    # echo "man_version_dir:$man_version_dir"
     # If your wanted a build without man pages,
     # the directory would not be there, so, no man page either!
     if [ -d "${man_version_dir}" ]; then
         man_version_path="${VERSION_ROOT_PATH}/bin/man"
-        # echo "man_version_path:$man_version_path"
         write_version_specific_man "${man_version_path}"
     fi
 done
