@@ -45,8 +45,8 @@ plenv man --version 5.34.1 --executable manpath -g -d
 ## Installation
 
 ```sh
-mkdir -p ${PLENV_ROOT}/plugins
-git clone https://github.com/mikkoi/plenv-man.git ${PLENV_ROOT}/plugins/plenv-man
+mkdir -p "$(plenv root)/plugins"
+git clone https://github.com/mikkoi/plenv-man.git "$(plenv root)/plugins/plenv-man"
 ```
 
 ## The Implicit Way, Using Plenv Hook.
@@ -60,10 +60,10 @@ and then call system `man`.
 ### Installation
 
 ```sh
-mkdir -p ${PLENV_ROOT}/plugins
-git clone https://github.com/mikkoi/plenv-man.git ${PLENV_ROOT}/plugins/plenv-man
-mkdir -p ${PLENV_ROOT}/plenv.d/rehash
-cp ${PLENV_ROOT}/plugins/plenv-man/plenv.d/rehash/man.bash ${PLENV_ROOT}/plenv.d/rehash/
+mkdir -p "$(plenv root)/plugins"
+git clone https://github.com/mikkoi/plenv-man.git "$(plenv root)/plugins/plenv-man"
+mkdir -p "$(plenv root)/plenv.d/rehash"
+ln --symbolic --target-directory "$(plenv root)/plenv.d/rehash/" "$(plenv root)/plugins/plenv-man/plenv.d/rehash/man.bash"
 plenv rehash
 ```
 
